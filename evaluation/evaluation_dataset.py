@@ -1,4 +1,6 @@
+
 EVALUATION_DATASET = [
+
     {
         "topic": "CPU Scheduling",
 
@@ -24,8 +26,19 @@ Priority Scheduling selects processes according to priority.
             "SJF selects the process with the shortest burst time.",
             "Round Robin uses a fixed time quantum.",
             "Priority Scheduling uses process priority."
+        ],
+
+        "keywords": [
+            "cpu",
+            "scheduling",
+            "process",
+            "fcfs",
+            "sjf",
+            "round robin",
+            "priority"
         ]
     },
+
 
     {
         "topic": "Database Normalization",
@@ -49,6 +62,19 @@ and removes transitive dependencies.
             "First Normal Form requires atomic values.",
             "Second Normal Form removes partial dependencies.",
             "Third Normal Form removes transitive dependencies."
+        ],
+
+        "keywords": [
+            "database",
+            "normalization",
+            "redundancy",
+            "atomic",
+            "1nf",
+            "2nf",
+            "3nf",
+            "partial dependency",
+            "transitive dependency"
         ]
     }
+
 ]

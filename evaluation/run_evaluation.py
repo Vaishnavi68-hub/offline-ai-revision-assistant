@@ -11,9 +11,16 @@ sys.path.append(
     )
 )
 
+sys.path.append(
+    os.path.abspath(
+        os.path.dirname(__file__)
+    )
+)
 
 from evaluation_dataset import EVALUATION_DATASET
 from summarizer import summarize_chunk
+from evaluator import calculate_coverage
+from relevance import calculate_relevance
 
 
 def run_evaluation():
@@ -28,17 +35,38 @@ def run_evaluation():
 
         print("\nGenerating summary...")
 
-        summary = summarize_chunk(item["text"])
+        summary = summarize_chunk(
+            item["text"]
+        )
+
+        coverage_score = calculate_coverage(
+            summary,
+            item["expected_points"]
+        )
+
+        relevance_score = calculate_relevance(
+            summary,
+            item["keywords"]
+        )
 
         print("\nGenerated Summary:")
         print(summary)
 
+        print(
+            f"\nCoverage Score: "
+            f"{coverage_score:.2f}%"
+        )
+
+        print(
+            f"Relevance Score: "
+            f"{relevance_score:.2f}%"
+        )
+
         results.append(
             {
                 "topic": item["topic"],
-                "text": item["text"],
-                "expected_points": item["expected_points"],
-                "generated_summary": summary
+                "coverage": coverage_score,
+                "relevance": relevance_score
             }
         )
 
