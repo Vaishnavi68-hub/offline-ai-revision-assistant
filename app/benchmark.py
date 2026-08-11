@@ -21,13 +21,8 @@ def get_memory_usage_mb():
 
 def benchmark_chunk(chunk):
     """
-    Measure inference time and memory usage for one chunk.
-
-    Parameters:
-        chunk: Text chunk to summarize.
-
-    Returns:
-        Dictionary containing summary, timing, and memory information.
+    Measure inference time, memory usage, and output size
+    for one chunk.
     """
 
     memory_before = get_memory_usage_mb()
@@ -44,10 +39,16 @@ def benchmark_chunk(chunk):
 
     memory_used = memory_after - memory_before
 
+    output_characters = len(summary)
+
+    output_words = len(summary.split())
+
     return {
         "summary": summary,
         "time_seconds": elapsed_time,
         "memory_before_mb": memory_before,
         "memory_after_mb": memory_after,
-        "memory_used_mb": memory_used
+        "memory_used_mb": memory_used,
+        "output_characters": output_characters,
+        "output_words": output_words
     }

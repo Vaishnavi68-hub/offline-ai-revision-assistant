@@ -24,6 +24,8 @@ if not chunks:
 
 times = []
 memory_usage = []
+output_words = []
+output_characters = []
 
 
 for i, chunk in enumerate(chunks):
@@ -40,8 +42,17 @@ for i, chunk in enumerate(chunks):
         result["memory_used_mb"]
     )
 
+    output_words.append(
+        result["output_words"]
+    )
+
+    output_characters.append(
+        result["output_characters"]
+    )
+
     print(
-        f"Time: {result['time_seconds']:.2f} seconds"
+        f"Time: "
+        f"{result['time_seconds']:.2f} seconds"
     )
 
     print(
@@ -49,13 +60,28 @@ for i, chunk in enumerate(chunks):
         f"{result['memory_used_mb']:.2f} MB"
     )
 
+    print(
+        f"Output words: "
+        f"{result['output_words']}"
+    )
+
 
 total_time = sum(times)
 
 average_time = total_time / len(times)
 
-average_memory = sum(memory_usage) / len(memory_usage)
+average_memory = (
+    sum(memory_usage) / len(memory_usage)
+)
 
+total_output_words = sum(output_words)
+
+total_output_characters = sum(
+    output_characters
+)
+words_per_second = (
+    total_output_words / total_time
+)
 
 print("\n==============================")
 print("BENCHMARK RESULTS")
@@ -74,4 +100,20 @@ print(
 print(
     f"Average Python process memory change: "
     f"{average_memory:.2f} MB"
+)
+
+print(
+    f"Total output words: "
+    f"{total_output_words}"
+)
+
+print(
+    f"Total output characters: "
+    f"{total_output_characters}"
+)
+
+
+print(
+    f"Approximate output speed: "
+    f"{words_per_second:.2f} words/second"
 )
