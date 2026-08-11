@@ -1,6 +1,12 @@
 import sys
 import os
 import time
+import csv
+from datetime import datetime
+
+
+MODEL_NAME = "qwen2.5:3b"
+
 
 sys.path.append(
     os.path.abspath(
@@ -17,6 +23,7 @@ sys.path.append(
         os.path.dirname(__file__)
     )
 )
+
 
 from evaluation_dataset import EVALUATION_DATASET
 from summarizer import summarize_chunk
@@ -113,10 +120,79 @@ def run_evaluation():
     return results
 
 
+def save_results(results):
+
+    os.makedirs(
+        "results",
+        exist_ok=True
+    )
+
+    file_path = (
+        "results/benchmark_results.csv"
+    )
+
+    file_exists = os.path.exists(
+        file_path
+    )
+
+    with open(
+        file_path,
+        "a",
+        newline="",
+        encoding="utf-8"
+    ) as file:
+
+        writer = csv.writer(file)
+
+        if not file_exists:
+
+            writer.writerow(
+                [
+                    "timestamp",
+                    "model",
+                    "topic",
+                    "average_time_seconds",
+                    "coverage_percent",
+                    "relevance_percent"
+                ]
+            )
+
+        timestamp = datetime.now().isoformat()
+
+        for result in results:
+
+            writer.writerow(
+                [
+                    timestamp,
+                    MODEL_NAME,
+                    result["topic"],
+                    round(
+                        result["average_time"],
+                        2
+                    ),
+                    round(
+                        result["coverage"],
+                        2
+                    ),
+                    round(
+                        result["relevance"],
+                        2
+                    )
+                ]
+            )
+
+
 if __name__ == "__main__":
 
     print("Starting evaluation...")
 
-    run_evaluation()
+    results = run_evaluation()
+
+    save_results(results)
+
+    print("\nResults saved to:")
+    print(
+        "results/benchmark_results.csv"
+    )
 
     print("\nEvaluation complete.")
