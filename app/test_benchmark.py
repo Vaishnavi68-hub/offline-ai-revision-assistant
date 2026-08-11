@@ -23,17 +23,30 @@ if not chunks:
 
 
 times = []
+memory_usage = []
+
 
 for i, chunk in enumerate(chunks):
 
-    print(f"\nBenchmarking chunk {i + 1}/{len(chunks)}...")
+    print(
+        f"\nBenchmarking chunk {i + 1}/{len(chunks)}..."
+    )
 
     result = benchmark_chunk(chunk)
 
     times.append(result["time_seconds"])
 
+    memory_usage.append(
+        result["memory_used_mb"]
+    )
+
     print(
         f"Time: {result['time_seconds']:.2f} seconds"
+    )
+
+    print(
+        f"Memory change: "
+        f"{result['memory_used_mb']:.2f} MB"
     )
 
 
@@ -41,15 +54,24 @@ total_time = sum(times)
 
 average_time = total_time / len(times)
 
+average_memory = sum(memory_usage) / len(memory_usage)
+
 
 print("\n==============================")
 print("BENCHMARK RESULTS")
 print("==============================")
 
 print(
-    f"Total time: {total_time:.2f} seconds"
+    f"Total inference time: "
+    f"{total_time:.2f} seconds"
 )
 
 print(
-    f"Average time per chunk: {average_time:.2f} seconds"
+    f"Average time per chunk: "
+    f"{average_time:.2f} seconds"
+)
+
+print(
+    f"Average Python process memory change: "
+    f"{average_memory:.2f} MB"
 )
