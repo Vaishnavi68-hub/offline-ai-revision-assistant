@@ -2,7 +2,12 @@ import streamlit as st
 
 from pdf_processor import extract_text_from_pdf, clean_text
 from text_processor import create_chunks
-from summarizer import summarize_chunk, create_final_summary
+from summarizer import (
+    summarize_chunk,
+    create_final_summary,
+    generate_key_points,
+    generate_flashcards
+)
 
 
 st.set_page_config(
@@ -15,8 +20,8 @@ st.set_page_config(
 st.title("📚 AI Offline Revision Assistant")
 
 st.write(
-    "Upload your study PDF and generate an AI-powered revision summary "
-    "using a local language model."
+    "Upload your study PDF and generate revision material "
+    "using a local AI model."
 )
 
 
@@ -26,11 +31,22 @@ uploaded_file = st.file_uploader(
 )
 
 
+revision_mode = st.radio(
+    "Choose revision mode:",
+    [
+        "Summary",
+        "Key Points",
+        "Flashcards"
+    ],
+    horizontal=True
+)
+
+
 if uploaded_file is not None:
 
     st.success("PDF uploaded successfully.")
 
-    if st.button("Generate Summary"):
+    if st.button("Generate"):
 
         with st.spinner("Reading PDF..."):
 
@@ -71,7 +87,7 @@ if uploaded_file is not None:
             for i, chunk in enumerate(chunks):
 
                 with st.spinner(
-                    f"Summarizing section {i + 1} of {len(chunks)}..."
+                    f"Processing section {i + 1} of {len(chunks)}..."
                 ):
 
                     summary = summarize_chunk(chunk)
@@ -80,14 +96,44 @@ if uploaded_file is not None:
 
                 progress.progress((i + 1) / len(chunks))
 
-            with st.spinner("Creating final study summary..."):
+            if revision_mode == "Summary":
 
-                final_summary = create_final_summary(
-                    chunk_summaries
-                )
+                with st.spinner("Creating final study summary..."):
 
-            st.success("Summary generated successfully!")
+                    result = create_final_summary(
+                        chunk_summaries
+                    )
 
-            st.markdown("## 📖 Study Summary")
+                st.success("Summary generated!")
 
-            st.markdown(final_summary)
+                st.markdown("## 📖 Study Summary")
+
+                st.markdown(result)
+
+            elif revision_mode == "Key Points":
+
+                with st.spinner("Extracting key revision points..."):
+
+                    result = generate_key_points(
+                        chunk_summaries
+                    )
+
+                st.success("Key points generated!")
+
+                st.markdown("## 🎯 Key Revision Points")
+
+                st.markdown(result)
+
+            elif revision_mode == "Flashcards":
+
+                with st.spinner("Creating flashcards..."):
+
+                    result = generate_flashcards(
+                        chunk_summaries
+                    )
+
+                st.success("Flashcards generated!")
+
+                st.markdown("## 🧠 Flashcards")
+
+                st.markdown(result)
