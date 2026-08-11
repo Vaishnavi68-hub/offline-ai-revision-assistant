@@ -22,3 +22,29 @@ def extract_text_from_pdf(pdf_path):
     document.close()
 
     return extracted_text
+
+
+def clean_text(text):
+    """
+    Clean extracted PDF text.
+
+    Parameters:
+        text: Raw extracted text.
+
+    Returns:
+        Cleaned text.
+    """
+
+    lines = text.splitlines()
+
+    cleaned_lines = []
+
+    for line in lines:
+        line = line.strip()
+
+        if line:
+            cleaned_lines.append(line)
+
+    cleaned_text = "\n".join(cleaned_lines)
+
+    return cleaned_text
