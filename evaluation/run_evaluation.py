@@ -5,8 +5,12 @@ import csv
 from datetime import datetime
 
 
-MODEL_NAME = "qwen2.5:3b"
+DEFAULT_MODEL = "qwen2.5:3b"
+def count_words(text):
 
+    return len(
+        text.split()
+    )
 
 sys.path.append(
     os.path.abspath(
@@ -31,7 +35,7 @@ from evaluator import calculate_coverage
 from relevance import calculate_relevance
 
 
-def run_evaluation():
+def run_evaluation(model_name):
 
     results = []
 
@@ -45,6 +49,8 @@ def run_evaluation():
 
         run_times = []
 
+        run_output_words = []
+
         final_summary = ""
 
         for run_number in range(1, number_of_runs + 1):
@@ -56,7 +62,16 @@ def run_evaluation():
             start_time = time.perf_counter()
 
             summary = summarize_chunk(
-                item["text"]
+                item["text"],
+                model_name=model_name
+            )
+            
+            output_words = count_words(
+                summary
+            )
+
+            run_output_words.append(
+                output_words
             )
 
             end_time = time.perf_counter()
@@ -79,6 +94,16 @@ def run_evaluation():
         average_time = (
             sum(run_times) / len(run_times)
         )
+        
+        average_output_words = (
+             sum(run_output_words)
+            / len(run_output_words)
+        )
+        
+        words_per_second = (
+            average_output_words
+            / average_time
+        )
 
         coverage_score = calculate_coverage(
             final_summary,
@@ -97,6 +122,16 @@ def run_evaluation():
             f"\nAverage Inference Time: "
             f"{average_time:.2f} seconds"
         )
+        
+        print(
+            f"Average Output Words: "
+            f"{average_output_words:.2f}"
+        )
+
+        print(
+            f"Output Speed: "
+            f"{words_per_second:.2f} words/second"
+        )
 
         print(
             f"Coverage Score: "
@@ -109,18 +144,23 @@ def run_evaluation():
         )
 
         results.append(
-            {
-                "topic": item["topic"],
-                "average_time": average_time,
-                "coverage": coverage_score,
-                "relevance": relevance_score
-            }
-        )
+    {
+        "topic": item["topic"],
+        "average_time": average_time,
+        "average_output_words": average_output_words,
+        "words_per_second": words_per_second,
+        "coverage": coverage_score,
+        "relevance": relevance_score
+    }
+)
 
     return results
 
 
-def save_results(results):
+def save_results(
+    results,
+    model_name
+):
 
     os.makedirs(
         "results",
@@ -152,6 +192,8 @@ def save_results(results):
                     "model",
                     "topic",
                     "average_time_seconds",
+                    "average_output_words",
+                    "words_per_second",
                     "coverage_percent",
                     "relevance_percent"
                 ]
@@ -164,10 +206,18 @@ def save_results(results):
             writer.writerow(
                 [
                     timestamp,
-                    MODEL_NAME,
+                    model_name,
                     result["topic"],
                     round(
                         result["average_time"],
+                        2
+                    ),
+                    round(
+                        result["average_output_words"],
+                        2
+                    ),
+                    round(
+                        result["words_per_second"],
                         2
                     ),
                     round(
@@ -184,11 +234,27 @@ def save_results(results):
 
 if __name__ == "__main__":
 
-    print("Starting evaluation...")
+    if len(sys.argv) > 1:
 
-    results = run_evaluation()
+        model_name = sys.argv[1]
 
-    save_results(results)
+    else:
+
+        model_name = DEFAULT_MODEL
+
+    print(
+        f"Starting evaluation for: "
+        f"{model_name}"
+    )
+
+    results = run_evaluation(
+        model_name
+    )
+
+    save_results(
+        results,
+        model_name
+    )
 
     print("\nResults saved to:")
     print(

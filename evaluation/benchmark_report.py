@@ -1,5 +1,5 @@
-import csv
 import os
+import csv
 
 
 RESULTS_FILE = "results/benchmark_results.csv"
@@ -36,7 +36,9 @@ def generate_report(results):
 
     if not results:
 
-        print("No benchmark results available.")
+        print(
+            "No benchmark results available."
+        )
 
         return
 
@@ -61,13 +63,24 @@ def generate_report(results):
     for model, model_results in models.items():
 
         total_time = 0
+        total_output_words = 0
+        total_words_per_second = 0
         total_coverage = 0
         total_relevance = 0
+
 
         for result in model_results:
 
             total_time += float(
                 result["average_time_seconds"]
+            )
+
+            total_output_words += float(
+                result["average_output_words"]
+            )
+
+            total_words_per_second += float(
+                result["words_per_second"]
             )
 
             total_coverage += float(
@@ -81,8 +94,17 @@ def generate_report(results):
 
         count = len(model_results)
 
+
         average_time = (
             total_time / count
+        )
+
+        average_output_words = (
+            total_output_words / count
+        )
+
+        average_words_per_second = (
+            total_words_per_second / count
         )
 
         average_coverage = (
@@ -99,6 +121,17 @@ def generate_report(results):
         print(
             f"Average inference time: "
             f"{average_time:.2f} seconds"
+        )
+
+        print(
+            f"Average output words: "
+            f"{average_output_words:.2f}"
+        )
+
+        print(
+            f"Output speed: "
+            f"{average_words_per_second:.2f} "
+            f"words/second"
         )
 
         print(

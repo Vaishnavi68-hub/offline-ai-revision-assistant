@@ -12,21 +12,36 @@ def normalize_text(text):
     )
 
 
-def calculate_coverage(summary, expected_points):
+def calculate_coverage(
+    summary,
+    expected_points
+):
     """
     Estimate how many expected points are covered
     by the generated summary.
 
-    Returns a percentage.
+    Returns:
+        Coverage percentage between 0 and 100.
     """
 
-    normalized_summary = normalize_text(summary)
+    if not expected_points:
+        return 0.0
+
+    normalized_summary = normalize_text(
+        summary
+    )
 
     covered_points = 0
 
+    total_points = len(
+        expected_points
+    )
+
     for point in expected_points:
 
-        normalized_point = normalize_text(point)
+        normalized_point = normalize_text(
+            point
+        )
 
         keywords = normalized_point.split()
 
@@ -36,6 +51,9 @@ def calculate_coverage(summary, expected_points):
             if len(word) > 4
         ]
 
+        if not important_keywords:
+            continue
+
         matches = 0
 
         for keyword in important_keywords:
@@ -44,18 +62,25 @@ def calculate_coverage(summary, expected_points):
 
                 matches += 1
 
-        if important_keywords:
+        match_ratio = (
+            matches / len(important_keywords)
+        )
 
-            match_ratio = (
-                matches / len(important_keywords)
-            )
+        if match_ratio >= 0.5:
 
-            if match_ratio >= 0.5:
-
-                covered_points += 1
+            covered_points += 1
 
     coverage = (
-        covered_points / len(expected_points)
+        covered_points / total_points
     ) * 100
+
+    # Coverage must always be between 0 and 100.
+    coverage = max(
+        0.0,
+        min(
+            100.0,
+            coverage
+        )
+    )
 
     return coverage
