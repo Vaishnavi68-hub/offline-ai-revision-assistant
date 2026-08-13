@@ -1,4 +1,5 @@
 import os
+import time
 import streamlit as st
 
 from pdf_processor import (
@@ -127,6 +128,14 @@ with st.sidebar:
         "Your study material stays on your "
         "computer. No cloud AI API is required."
     )
+
+    st.divider()
+
+    if st.button(
+        "🔄 New Document",
+        use_container_width=True
+    ):
+        st.rerun()
 
 
 # --------------------------------------------------
@@ -363,6 +372,8 @@ if uploaded_file is not None:
             text="Starting AI processing..."
         )
 
+        generation_start = time.time()
+
         for i, chunk in enumerate(chunks):
 
             progress.progress(
@@ -386,7 +397,7 @@ if uploaded_file is not None:
 
 
         # ------------------------------------------
-        # SUMMARY
+        # GENERATE FINAL RESULT
         # ------------------------------------------
 
         if revision_mode == "Summary":
@@ -399,6 +410,104 @@ if uploaded_file is not None:
                     chunk_summaries,
                     model_name
                 )
+
+
+        elif revision_mode == "Key Points":
+
+            with st.spinner(
+                "Extracting key revision points..."
+            ):
+
+                result = generate_key_points(
+                    chunk_summaries,
+                    model_name
+                )
+
+
+        else:
+
+            with st.spinner(
+                "Creating flashcards..."
+            ):
+
+                result = generate_flashcards(
+                    chunk_summaries,
+                    model_name
+                )
+
+
+        generation_time = (
+            time.time() - generation_start
+        )
+
+
+        # ------------------------------------------
+        # GENERATION METRICS
+        # ------------------------------------------
+
+        output_words = len(
+            result.split()
+        )
+
+        if generation_time > 0:
+
+            output_speed = (
+                output_words /
+                generation_time
+            )
+
+        else:
+
+            output_speed = 0
+
+
+        st.markdown("---")
+
+        st.subheader(
+            "📊 Generation Metrics"
+        )
+
+        metric1, metric2, metric3, metric4 = (
+            st.columns(4)
+        )
+
+        with metric1:
+
+            st.metric(
+                "Generation Time",
+                f"{generation_time:.2f} s"
+            )
+
+        with metric2:
+
+            st.metric(
+                "Output Words",
+                output_words
+            )
+
+        with metric3:
+
+            st.metric(
+                "Output Speed",
+                f"{output_speed:.2f} words/s"
+            )
+
+        with metric4:
+
+            st.metric(
+                "Chunks",
+                len(chunks)
+            )
+
+
+        # ------------------------------------------
+        # DISPLAY RESULT
+        # ------------------------------------------
+
+        st.markdown("---")
+
+
+        if revision_mode == "Summary":
 
             st.success(
                 "Study summary generated!"
@@ -418,20 +527,7 @@ if uploaded_file is not None:
             )
 
 
-        # ------------------------------------------
-        # KEY POINTS
-        # ------------------------------------------
-
         elif revision_mode == "Key Points":
-
-            with st.spinner(
-                "Extracting key revision points..."
-            ):
-
-                result = generate_key_points(
-                    chunk_summaries,
-                    model_name
-                )
 
             st.success(
                 "Key points generated!"
@@ -451,20 +547,7 @@ if uploaded_file is not None:
             )
 
 
-        # ------------------------------------------
-        # FLASHCARDS
-        # ------------------------------------------
-
-        elif revision_mode == "Flashcards":
-
-            with st.spinner(
-                "Creating flashcards..."
-            ):
-
-                result = generate_flashcards(
-                    chunk_summaries,
-                    model_name
-                )
+        else:
 
             st.success(
                 "Flashcards generated!"
