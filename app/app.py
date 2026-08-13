@@ -1,8 +1,13 @@
 import os
 import streamlit as st
 
-from pdf_processor import extract_text_from_pdf, clean_text
+from pdf_processor import (
+    extract_text_from_pdf,
+    clean_text
+)
+
 from text_processor import create_chunks
+
 from summarizer import (
     summarize_chunk,
     create_final_summary,
@@ -64,14 +69,17 @@ st.markdown(
 # --------------------------------------------------
 
 st.markdown(
-    '<div class="main-title">📚 AI Offline Revision Assistant</div>',
+    '<div class="main-title">'
+    '📚 AI Offline Revision Assistant'
+    '</div>',
     unsafe_allow_html=True
 )
 
 st.markdown(
     '<div class="subtitle">'
-    'Transform your study PDFs into summaries, key points, and flashcards '
-    'using a locally running AI model.'
+    'Transform your study PDFs into summaries, '
+    'key points, and flashcards using a '
+    'locally running AI model.'
     '</div>',
     unsafe_allow_html=True
 )
@@ -98,8 +106,16 @@ with st.sidebar:
 
     st.markdown("### 🤖 AI Model")
 
+    model_name = st.selectbox(
+        "Choose local AI model:",
+        [
+            "llama3.2:3b",
+            "qwen2.5:3b"
+        ]
+    )
+
     st.info(
-        "Llama 3.2 3B\n\n"
+        f"Selected model: {model_name}\n\n"
         "Running locally through Ollama."
     )
 
@@ -108,8 +124,8 @@ with st.sidebar:
     st.markdown("### 🔒 Privacy")
 
     st.success(
-        "Your study material stays on your computer. "
-        "No cloud AI API is required."
+        "Your study material stays on your "
+        "computer. No cloud AI API is required."
     )
 
 
@@ -120,7 +136,8 @@ with st.sidebar:
 uploaded_file = st.file_uploader(
     "📄 Upload your study PDF",
     type=["pdf"],
-    help="Upload a text-based PDF containing your study material."
+    help="Upload a text-based PDF containing "
+         "your study material."
 )
 
 
@@ -197,7 +214,7 @@ if uploaded_file is not None:
     ):
 
         # ------------------------------------------
-        # SAVE UPLOADED PDF
+        # SAVE PDF
         # ------------------------------------------
 
         os.makedirs(
@@ -220,7 +237,7 @@ if uploaded_file is not None:
 
 
         # ------------------------------------------
-        # EXTRACT AND CLEAN TEXT
+        # EXTRACT TEXT
         # ------------------------------------------
 
         with st.status(
@@ -241,7 +258,8 @@ if uploaded_file is not None:
             )
 
             st.write(
-                f"Cleaned text: {len(cleaned_text)} characters."
+                f"Cleaned text: "
+                f"{len(cleaned_text)} characters."
             )
 
             if not cleaned_text.strip():
@@ -252,8 +270,9 @@ if uploaded_file is not None:
                 )
 
                 st.error(
-                    "No readable text was found in this PDF. "
-                    "Please upload a text-based PDF."
+                    "No readable text was found "
+                    "in this PDF. Please upload a "
+                    "text-based PDF."
                 )
 
                 st.stop()
@@ -321,8 +340,8 @@ if uploaded_file is not None:
         with col3:
 
             st.metric(
-                "Revision Mode",
-                revision_mode
+                "AI Model",
+                model_name
             )
 
 
@@ -355,7 +374,8 @@ if uploaded_file is not None:
             )
 
             summary = summarize_chunk(
-                chunk
+                chunk,
+                model_name
             )
 
             chunk_summaries.append(
@@ -376,7 +396,8 @@ if uploaded_file is not None:
             ):
 
                 result = create_final_summary(
-                    chunk_summaries
+                    chunk_summaries,
+                    model_name
                 )
 
             st.success(
@@ -408,7 +429,8 @@ if uploaded_file is not None:
             ):
 
                 result = generate_key_points(
-                    chunk_summaries
+                    chunk_summaries,
+                    model_name
                 )
 
             st.success(
@@ -440,7 +462,8 @@ if uploaded_file is not None:
             ):
 
                 result = generate_flashcards(
-                    chunk_summaries
+                    chunk_summaries,
+                    model_name
                 )
 
             st.success(
@@ -468,6 +491,6 @@ if uploaded_file is not None:
 st.markdown("---")
 
 st.caption(
-    "🔒 Offline AI • Ollama • Llama 3.2 3B • "
+    "🔒 Offline AI • Ollama • Local LLMs • "
     "Your study material remains local"
 )
