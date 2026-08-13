@@ -4,29 +4,29 @@ import ollama
 MODEL_NAME = "llama3.2:3b"
 
 
-def generate_response(
-    prompt,
-    model_name=MODEL_NAME
-):
+def generate_response(prompt):
     """
-    Send a prompt to a local Ollama model.
-
-    Parameters:
-        prompt: Text instruction sent to the model.
-        model_name: Name of the Ollama model to use.
-
-    Returns:
-        Model-generated response.
+    Send a prompt to the local Ollama model.
     """
 
-    response = ollama.chat(
-        model=model_name,
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
+    try:
 
-    return response["message"]["content"]
+        response = ollama.chat(
+            model=MODEL_NAME,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+
+        return response["message"]["content"]
+
+    except Exception as e:
+
+        raise RuntimeError(
+            "Unable to connect to Ollama. "
+            "Please make sure Ollama is running "
+            "and the model 'llama3.2:3b' is available."
+        ) from e

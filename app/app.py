@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 
 from pdf_processor import extract_text_from_pdf, clean_text
@@ -10,6 +11,10 @@ from summarizer import (
 )
 
 
+# --------------------------------------------------
+# PAGE CONFIGURATION
+# --------------------------------------------------
+
 st.set_page_config(
     page_title="AI Offline Revision Assistant",
     page_icon="📚",
@@ -17,123 +22,452 @@ st.set_page_config(
 )
 
 
-st.title("📚 AI Offline Revision Assistant")
+# --------------------------------------------------
+# CUSTOM CSS
+# --------------------------------------------------
 
-st.write(
-    "Upload your study PDF and generate revision material "
-    "using a local AI model."
+st.markdown(
+    """
+    <style>
+
+    .main-title {
+        font-size: 42px;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 5px;
+    }
+
+    .subtitle {
+        text-align: center;
+        font-size: 18px;
+        color: #666;
+        margin-bottom: 30px;
+    }
+
+    .feature-card {
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #ddd;
+        background-color: #fafafa;
+        text-align: center;
+        margin-bottom: 15px;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
+
+# --------------------------------------------------
+# HEADER
+# --------------------------------------------------
+
+st.markdown(
+    '<div class="main-title">📚 AI Offline Revision Assistant</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<div class="subtitle">'
+    'Transform your study PDFs into summaries, key points, and flashcards '
+    'using a locally running AI model.'
+    '</div>',
+    unsafe_allow_html=True
+)
+
+
+# --------------------------------------------------
+# SIDEBAR
+# --------------------------------------------------
+
+with st.sidebar:
+
+    st.header("⚙️ Revision Settings")
+
+    revision_mode = st.radio(
+        "Choose revision mode:",
+        [
+            "Summary",
+            "Key Points",
+            "Flashcards"
+        ]
+    )
+
+    st.divider()
+
+    st.markdown("### 🤖 AI Model")
+
+    st.info(
+        "Llama 3.2 3B\n\n"
+        "Running locally through Ollama."
+    )
+
+    st.divider()
+
+    st.markdown("### 🔒 Privacy")
+
+    st.success(
+        "Your study material stays on your computer. "
+        "No cloud AI API is required."
+    )
+
+
+# --------------------------------------------------
+# FILE UPLOAD
+# --------------------------------------------------
 
 uploaded_file = st.file_uploader(
-    "Upload your study PDF",
-    type=["pdf"]
+    "📄 Upload your study PDF",
+    type=["pdf"],
+    help="Upload a text-based PDF containing your study material."
 )
 
 
-revision_mode = st.radio(
-    "Choose revision mode:",
-    [
-        "Summary",
-        "Key Points",
-        "Flashcards"
-    ],
-    horizontal=True
-)
+# --------------------------------------------------
+# LANDING PAGE
+# --------------------------------------------------
 
+if uploaded_file is None:
+
+    st.markdown("---")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+
+        st.markdown(
+            """
+            <div class="feature-card">
+            <h3>📖 Smart Summary</h3>
+            <p>
+            Convert lengthy study material into
+            concise revision notes.
+            </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col2:
+
+        st.markdown(
+            """
+            <div class="feature-card">
+            <h3>🎯 Key Points</h3>
+            <p>
+            Extract important concepts,
+            definitions, and exam points.
+            </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col3:
+
+        st.markdown(
+            """
+            <div class="feature-card">
+            <h3>🧠 Flashcards</h3>
+            <p>
+            Generate question-answer cards
+            for active recall.
+            </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+# --------------------------------------------------
+# PDF PROCESSING
+# --------------------------------------------------
 
 if uploaded_file is not None:
 
-    st.success("PDF uploaded successfully.")
+    st.success(
+        f"Uploaded: {uploaded_file.name}"
+    )
 
-    if st.button("Generate"):
+    if st.button(
+        "🚀 Generate Revision Material",
+        type="primary",
+        use_container_width=True
+    ):
 
-        with st.spinner("Reading PDF..."):
+        # ------------------------------------------
+        # SAVE UPLOADED PDF
+        # ------------------------------------------
 
-            pdf_bytes = uploaded_file.getvalue()
+        os.makedirs(
+            "data",
+            exist_ok=True
+        )
 
-            temp_pdf_path = "data/uploaded_notes.pdf"
+        temp_pdf_path = (
+            "data/uploaded_notes.pdf"
+        )
 
-            with open(temp_pdf_path, "wb") as file:
-                file.write(pdf_bytes)
+        with open(
+            temp_pdf_path,
+            "wb"
+        ) as file:
 
-            raw_text = extract_text_from_pdf(temp_pdf_path)
-
-            cleaned_text = clean_text(raw_text)
-
-        if not cleaned_text.strip():
-
-            st.error(
-                "No readable text was found in this PDF. "
-                "Please upload a text-based PDF."
+            file.write(
+                uploaded_file.getvalue()
             )
 
-        else:
 
-            with st.spinner("Creating document chunks..."):
+        # ------------------------------------------
+        # EXTRACT AND CLEAN TEXT
+        # ------------------------------------------
 
-                chunks = create_chunks(
-                    cleaned_text,
-                    chunk_size=100,
-                    overlap=20
+        with st.status(
+            "📖 Reading PDF...",
+            expanded=True
+        ) as status:
+
+            raw_text = extract_text_from_pdf(
+                temp_pdf_path
+            )
+
+            st.write(
+                f"Extracted {len(raw_text)} characters."
+            )
+
+            cleaned_text = clean_text(
+                raw_text
+            )
+
+            st.write(
+                f"Cleaned text: {len(cleaned_text)} characters."
+            )
+
+            if not cleaned_text.strip():
+
+                status.update(
+                    label="❌ PDF processing failed",
+                    state="error"
                 )
 
-            st.info(f"Created {len(chunks)} text chunks.")
+                st.error(
+                    "No readable text was found in this PDF. "
+                    "Please upload a text-based PDF."
+                )
 
-            chunk_summaries = []
+                st.stop()
 
-            progress = st.progress(0)
 
-            for i, chunk in enumerate(chunks):
+            # --------------------------------------
+            # CREATE CHUNKS
+            # --------------------------------------
 
-                with st.spinner(
-                    f"Processing section {i + 1} of {len(chunks)}..."
-                ):
+            st.write(
+                "Creating document chunks..."
+            )
 
-                    summary = summarize_chunk(chunk)
+            chunks = create_chunks(
+                cleaned_text,
+                chunk_size=100,
+                overlap=20
+            )
 
-                    chunk_summaries.append(summary)
+            if not chunks:
 
-                progress.progress((i + 1) / len(chunks))
+                status.update(
+                    label="❌ No chunks created",
+                    state="error"
+                )
 
-            if revision_mode == "Summary":
+                st.error(
+                    "The document could not be divided "
+                    "into text chunks."
+                )
 
-                with st.spinner("Creating final study summary..."):
+                st.stop()
 
-                    result = create_final_summary(
-                        chunk_summaries
-                    )
 
-                st.success("Summary generated!")
+            st.write(
+                f"Created {len(chunks)} text chunks."
+            )
 
-                st.markdown("## 📖 Study Summary")
+            status.update(
+                label="✅ PDF processed successfully",
+                state="complete"
+            )
 
-                st.markdown(result)
 
-            elif revision_mode == "Key Points":
+        # ------------------------------------------
+        # DOCUMENT INFORMATION
+        # ------------------------------------------
 
-                with st.spinner("Extracting key revision points..."):
+        col1, col2, col3 = st.columns(3)
 
-                    result = generate_key_points(
-                        chunk_summaries
-                    )
+        with col1:
 
-                st.success("Key points generated!")
+            st.metric(
+                "Characters",
+                len(cleaned_text)
+            )
 
-                st.markdown("## 🎯 Key Revision Points")
+        with col2:
 
-                st.markdown(result)
+            st.metric(
+                "Chunks",
+                len(chunks)
+            )
 
-            elif revision_mode == "Flashcards":
+        with col3:
 
-                with st.spinner("Creating flashcards..."):
+            st.metric(
+                "Revision Mode",
+                revision_mode
+            )
 
-                    result = generate_flashcards(
-                        chunk_summaries
-                    )
 
-                st.success("Flashcards generated!")
+        st.markdown("---")
 
-                st.markdown("## 🧠 Flashcards")
 
-                st.markdown(result)
+        # ------------------------------------------
+        # LOCAL AI PROCESSING
+        # ------------------------------------------
+
+        st.subheader(
+            "🤖 Processing with Local AI"
+        )
+
+        chunk_summaries = []
+
+        progress = st.progress(
+            0,
+            text="Starting AI processing..."
+        )
+
+        for i, chunk in enumerate(chunks):
+
+            progress.progress(
+                (i + 1) / len(chunks),
+                text=(
+                    f"Processing section "
+                    f"{i + 1} of {len(chunks)}..."
+                )
+            )
+
+            summary = summarize_chunk(
+                chunk
+            )
+
+            chunk_summaries.append(
+                summary
+            )
+
+        progress.empty()
+
+
+        # ------------------------------------------
+        # SUMMARY
+        # ------------------------------------------
+
+        if revision_mode == "Summary":
+
+            with st.spinner(
+                "Creating final study summary..."
+            ):
+
+                result = create_final_summary(
+                    chunk_summaries
+                )
+
+            st.success(
+                "Study summary generated!"
+            )
+
+            st.markdown(
+                "## 📖 Study Summary"
+            )
+
+            st.markdown(result)
+
+            st.download_button(
+                label="⬇️ Download Summary",
+                data=result,
+                file_name="study_summary.txt",
+                mime="text/plain"
+            )
+
+
+        # ------------------------------------------
+        # KEY POINTS
+        # ------------------------------------------
+
+        elif revision_mode == "Key Points":
+
+            with st.spinner(
+                "Extracting key revision points..."
+            ):
+
+                result = generate_key_points(
+                    chunk_summaries
+                )
+
+            st.success(
+                "Key points generated!"
+            )
+
+            st.markdown(
+                "## 🎯 Key Revision Points"
+            )
+
+            st.markdown(result)
+
+            st.download_button(
+                label="⬇️ Download Key Points",
+                data=result,
+                file_name="key_points.txt",
+                mime="text/plain"
+            )
+
+
+        # ------------------------------------------
+        # FLASHCARDS
+        # ------------------------------------------
+
+        elif revision_mode == "Flashcards":
+
+            with st.spinner(
+                "Creating flashcards..."
+            ):
+
+                result = generate_flashcards(
+                    chunk_summaries
+                )
+
+            st.success(
+                "Flashcards generated!"
+            )
+
+            st.markdown(
+                "## 🧠 Flashcards"
+            )
+
+            st.markdown(result)
+
+            st.download_button(
+                label="⬇️ Download Flashcards",
+                data=result,
+                file_name="flashcards.txt",
+                mime="text/plain"
+            )
+
+
+# --------------------------------------------------
+# FOOTER
+# --------------------------------------------------
+
+st.markdown("---")
+
+st.caption(
+    "🔒 Offline AI • Ollama • Llama 3.2 3B • "
+    "Your study material remains local"
+)
