@@ -1,17 +1,34 @@
-__pycache__/
-*.pyc
-
+# Virtual environment
 .venv/
 venv/
 env/
 
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Streamlit
+.streamlit/
+
+# Local uploaded files
+data/*.pdf
+data/uploaded_notes.pdf
+
+# Evaluation generated results
+results/*.csv
+
+# Environment variables
 .env
 
-.ipynb_checkpoints/
+# IDE files
+.vscode/
+.idea/
 
-data/uploads/
-data/*.pdf
+# OS files
+.DS_Store
+Thumbs.db
 
-*.db
-*.DS_Store
-temp.pdf
+# Python packaging
+*.egg-info/
+dist/
+build/
