@@ -17,6 +17,12 @@ from summarizer import (
 )
 
 
+from benchmark import (
+    load_benchmark_results,
+    calculate_model_averages
+)
+
+
 # --------------------------------------------------
 # PAGE CONFIGURATION
 # --------------------------------------------------
@@ -136,7 +142,47 @@ with st.sidebar:
         use_container_width=True
     ):
         st.rerun()
+    st.divider()
 
+with st.expander("📊 Model Benchmark"):
+
+    benchmark_results = load_benchmark_results()
+
+    if benchmark_results:
+
+        averages = calculate_model_averages(
+            benchmark_results
+        )
+
+        for model, metrics in averages.items():
+
+            st.markdown(f"**{model}**")
+
+            st.caption(
+                f"Inference: "
+                f"{metrics['inference_time']:.2f}s"
+            )
+
+            st.caption(
+                f"Speed: "
+                f"{metrics['speed']:.2f} words/s"
+            )
+
+            st.caption(
+                f"Coverage: "
+                f"{metrics['coverage']:.2f}%"
+            )
+
+            st.caption(
+                f"Relevance: "
+                f"{metrics['relevance']:.2f}%"
+            )
+
+    else:
+
+        st.info(
+            "No benchmark results available."
+        )
 
 # --------------------------------------------------
 # FILE UPLOAD
