@@ -1,4 +1,4 @@
-from llm import generate_response
+from app.llm import generate_response
 
 
 def summarize_chunk(
