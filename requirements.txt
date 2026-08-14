@@ -1,7 +1,5 @@
-streamlit==1.61.1
-ollama==0.6.2
-PyMuPDF==1.28.2
-pandas==3.0.5
-numpy==2.5.2
-huggingface_hubgradio
+gradio
+PyMuPDF
 huggingface_hub
+pandas
+numpy

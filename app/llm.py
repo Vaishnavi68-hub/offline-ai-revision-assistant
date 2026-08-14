@@ -1,8 +1,7 @@
 import os
 import ollama
 
-from .cloud_llm import generate_cloud_response
-
+from cloud_llm import generate_cloud_response
 
 MODEL_NAME = "qwen2.5:3b"
 

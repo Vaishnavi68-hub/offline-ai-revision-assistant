@@ -1,58 +1,47 @@
 # 📚 AI Offline Revision Assistant
 
-An offline AI-powered study assistant that converts study PDFs into concise summaries, key revision points, and flashcards using locally running Large Language Models through Ollama.
+An AI-powered study assistant that transforms educational PDFs into **summaries, key points, and flashcards** using Large Language Models.
+
+The project supports both **local AI inference using Ollama** and **cloud-based AI inference using Hugging Face**, making it flexible for both offline development and online deployment.
+
+## 🚀 Live Demo
+
+👉 **Hugging Face Space:**  
+https://huggingface.co/spaces/vaishnavihuse134/offline-ai-revision-assistant-v2
+
+---
 
 ## ✨ Features
 
 - 📄 Upload study PDFs
-- 📖 Generate concise study summaries
-- 🎯 Extract important revision points
-- 🧠 Generate exam-oriented flashcards
-- 🤖 Support multiple local LLMs
-- ⚡ Benchmark model inference performance
-- 📊 Compare inference time, output speed, coverage, and relevance
-- 🏆 Automatically recommend the better-performing model
-- 🔒 No cloud AI API required
-- 💾 Download generated revision material
-- 📈 Display generation statistics
-- ⏱️ Estimate processing time for uploaded documents
+- 🔍 Extract text from PDF documents
+- 🧹 Clean and preprocess extracted text
+- ✂️ Split large documents into manageable chunks
+- 🤖 Generate AI-powered revision material
+- 📝 Generate concise summaries
+- 📌 Generate key points
+- 🧠 Generate flashcards for revision
+- 🖥️ Interactive Gradio web interface
+- 🏠 Local AI inference using Ollama
+- ☁️ Cloud AI inference using Hugging Face
+- 🔄 Switch between local and cloud AI backends
+- 🚀 Deployable on Hugging Face Spaces
 
-## 🤖 Supported Models
+---
 
-Currently benchmarked:
+## 🧠 AI Backends
 
-- `llama3.2:3b`
-- `qwen2.5:3b`
+The application supports two AI backends.
 
-The application uses Ollama to run the models locally.
+### 1. Local AI — Ollama
 
-## 🏗️ Project Architecture
+For local development, the application can use Ollama with:
 
-```text
-AI-offline revision-assistant/
-│
-├── app/
-│   ├── app.py
-│   ├── benchmark.py
-│   ├── llm.py
-│   ├── pdf_processor.py
-│   ├── summarizer.py
-│   ├── text_processor.py
-│   │
-│   └── tests/
-│
-├── evaluation/
-│   ├── benchmark_report.py
-│   ├── evaluation_dataset.py
-│   ├── evaluator.py
-│   ├── final_report.py
-│   ├── relevance.py
-│   └── run_evaluation.py
-│
-├── results/
-│
-├── data/
-│
-├── requirements.txt
-├── .gitignore
-└── README.md
+**Model:** `qwen2.5:3b`
+
+This allows the application to generate responses locally without sending prompts to a cloud API.
+
+Set:
+
+```bash
+AI_BACKEND=local

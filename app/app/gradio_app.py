@@ -1,12 +1,11 @@
-@'
 import gradio as gr
-import os
 import tempfile
+import os
 
-from pdf_processor import extract_text_from_pdf, clean_text
-from text_processor import create_chunks
+from app.pdf_processor import extract_text_from_pdf, clean_text
+from app.text_processor import create_chunks
 
-from summarizer import (
+from app.summarizer import (
     summarize_chunk,
     create_final_summary,
     generate_key_points,
@@ -17,12 +16,21 @@ from summarizer import (
 def process_pdf(pdf_file, revision_mode):
 
     if pdf_file is None:
-        return "Please upload a PDF first."
+        return "❌ Please upload a PDF first."
+
+    temp_pdf_path = None
 
     try:
+        # ------------------------------------------
+        # READ UPLOADED PDF
+        # ------------------------------------------
 
         with open(pdf_file, "rb") as source:
             pdf_bytes = source.read()
+
+        # ------------------------------------------
+        # CREATE TEMPORARY PDF
+        # ------------------------------------------
 
         with tempfile.NamedTemporaryFile(
             delete=False,
@@ -31,6 +39,10 @@ def process_pdf(pdf_file, revision_mode):
 
             temp_file.write(pdf_bytes)
             temp_pdf_path = temp_file.name
+
+        # ------------------------------------------
+        # EXTRACT TEXT
+        # ------------------------------------------
 
         raw_text = extract_text_from_pdf(
             temp_pdf_path
@@ -46,6 +58,10 @@ def process_pdf(pdf_file, revision_mode):
                 "in the PDF."
             )
 
+        # ------------------------------------------
+        # CREATE CHUNKS
+        # ------------------------------------------
+
         chunks = create_chunks(
             cleaned_text,
             chunk_size=500,
@@ -54,6 +70,10 @@ def process_pdf(pdf_file, revision_mode):
 
         if not chunks:
             return "❌ No text chunks were created."
+
+        # ------------------------------------------
+        # SUMMARIZE CHUNKS
+        # ------------------------------------------
 
         chunk_summaries = []
 
@@ -66,6 +86,10 @@ def process_pdf(pdf_file, revision_mode):
             chunk_summaries.append(
                 summary
             )
+
+        # ------------------------------------------
+        # GENERATE FINAL RESULT
+        # ------------------------------------------
 
         if revision_mode == "Summary":
 
@@ -91,6 +115,26 @@ def process_pdf(pdf_file, revision_mode):
 
         return f"❌ Error: {error}"
 
+    finally:
+
+        # ------------------------------------------
+        # DELETE TEMPORARY PDF
+        # ------------------------------------------
+
+        if (
+            temp_pdf_path
+            and os.path.exists(temp_pdf_path)
+        ):
+
+            try:
+                os.remove(temp_pdf_path)
+            except Exception:
+                pass
+
+
+# ==================================================
+# GRADIO UI
+# ==================================================
 
 with gr.Blocks(
     title="AI Offline Revision Assistant"
@@ -109,7 +153,8 @@ with gr.Blocks(
     gr.Markdown(
         """
         Upload your study material, choose a
-        revision mode, and generate your notes.
+        revision mode, and generate your revision
+        material.
         """
     )
 
@@ -150,6 +195,9 @@ with gr.Blocks(
     )
 
 
+# ==================================================
+# LAUNCH
+# ==================================================
+
 if __name__ == "__main__":
     demo.launch()
-'@ | Set-Content app/gradio_app.py
