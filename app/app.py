@@ -1,6 +1,7 @@
 import os
 import time
 import streamlit as st
+import ollama
 
 from pdf_processor import (
     extract_text_from_pdf,
@@ -15,7 +16,6 @@ from summarizer import (
     generate_key_points,
     generate_flashcards
 )
-
 
 from benchmark import (
     load_benchmark_results,
@@ -111,6 +111,10 @@ with st.sidebar:
 
     st.divider()
 
+    # ----------------------------------------------
+    # AI MODEL
+    # ----------------------------------------------
+
     st.markdown("### 🤖 AI Model")
 
     model_name = st.selectbox(
@@ -126,6 +130,68 @@ with st.sidebar:
         "Running locally through Ollama."
     )
 
+    # ----------------------------------------------
+    # SYSTEM STATUS
+    # ----------------------------------------------
+
+    st.markdown("### 🟢 System Status")
+
+    try:
+
+        available_models = ollama.list()
+
+        model_names = [
+            model["model"]
+            for model in available_models["models"]
+        ]
+
+        # Handle possible Ollama model-name variants
+        model_available = (
+            model_name in model_names
+            or any(
+                name.startswith(model_name)
+                for name in model_names
+            )
+        )
+
+        if model_available:
+
+            st.success("Ollama: Connected")
+
+            st.success(
+                f"Model available: {model_name}"
+            )
+
+        else:
+
+            st.warning(
+                "Ollama: Connected"
+            )
+
+            st.warning(
+                f"Model '{model_name}' "
+                "is not installed."
+            )
+
+            st.caption(
+                f"Run: ollama pull {model_name}"
+            )
+
+    except Exception:
+
+        st.error(
+            "Ollama: Not connected"
+        )
+
+        st.caption(
+            "Start Ollama before generating "
+            "revision material."
+        )
+
+    # ----------------------------------------------
+    # PRIVACY
+    # ----------------------------------------------
+
     st.divider()
 
     st.markdown("### 🔒 Privacy")
@@ -135,54 +201,76 @@ with st.sidebar:
         "computer. No cloud AI API is required."
     )
 
+    # ----------------------------------------------
+    # NEW DOCUMENT
+    # ----------------------------------------------
+
     st.divider()
 
     if st.button(
         "🔄 New Document",
         use_container_width=True
     ):
+
         st.rerun()
+
+    # ----------------------------------------------
+    # BENCHMARK
+    # ----------------------------------------------
+
     st.divider()
 
-with st.expander("📊 Model Benchmark"):
+    with st.expander("📊 Model Benchmark"):
 
-    benchmark_results = load_benchmark_results()
-
-    if benchmark_results:
-
-        averages = calculate_model_averages(
-            benchmark_results
+        benchmark_results = (
+            load_benchmark_results()
         )
 
-        for model, metrics in averages.items():
+        if benchmark_results:
 
-            st.markdown(f"**{model}**")
-
-            st.caption(
-                f"Inference: "
-                f"{metrics['inference_time']:.2f}s"
+            averages = (
+                calculate_model_averages(
+                    benchmark_results
+                )
             )
 
-            st.caption(
-                f"Speed: "
-                f"{metrics['speed']:.2f} words/s"
+            for model, metrics in averages.items():
+
+                st.markdown(
+                    f"**{model}**"
+                )
+
+                st.caption(
+                    f"Inference: "
+                    f"{metrics['inference_time']:.2f}s"
+                )
+
+                st.caption(
+                    f"Output words: "
+                    f"{metrics['output_words']:.2f}"
+                )
+
+                st.caption(
+                    f"Speed: "
+                    f"{metrics['speed']:.2f} words/s"
+                )
+
+                st.caption(
+                    f"Coverage: "
+                    f"{metrics['coverage']:.2f}%"
+                )
+
+                st.caption(
+                    f"Relevance: "
+                    f"{metrics['relevance']:.2f}%"
+                )
+
+        else:
+
+            st.info(
+                "No benchmark results available."
             )
 
-            st.caption(
-                f"Coverage: "
-                f"{metrics['coverage']:.2f}%"
-            )
-
-            st.caption(
-                f"Relevance: "
-                f"{metrics['relevance']:.2f}%"
-            )
-
-    else:
-
-        st.info(
-            "No benchmark results available."
-        )
 
 # --------------------------------------------------
 # FILE UPLOAD
@@ -191,8 +279,10 @@ with st.expander("📊 Model Benchmark"):
 uploaded_file = st.file_uploader(
     "📄 Upload your study PDF",
     type=["pdf"],
-    help="Upload a text-based PDF containing "
-         "your study material."
+    help=(
+        "Upload a text-based PDF containing "
+        "your study material."
+    )
 )
 
 
@@ -290,7 +380,6 @@ if uploaded_file is not None:
                 uploaded_file.getvalue()
             )
 
-
         # ------------------------------------------
         # EXTRACT TEXT
         # ------------------------------------------
@@ -305,7 +394,8 @@ if uploaded_file is not None:
             )
 
             st.write(
-                f"Extracted {len(raw_text)} characters."
+                f"Extracted "
+                f"{len(raw_text)} characters."
             )
 
             cleaned_text = clean_text(
@@ -331,7 +421,6 @@ if uploaded_file is not None:
                 )
 
                 st.stop()
-
 
             # --------------------------------------
             # CREATE CHUNKS
@@ -361,16 +450,15 @@ if uploaded_file is not None:
 
                 st.stop()
 
-
             st.write(
-                f"Created {len(chunks)} text chunks."
+                f"Created {len(chunks)} "
+                "text chunks."
             )
 
             status.update(
                 label="✅ PDF processed successfully",
                 state="complete"
             )
-
 
         # ------------------------------------------
         # DOCUMENT INFORMATION
@@ -399,9 +487,7 @@ if uploaded_file is not None:
                 model_name
             )
 
-
         st.markdown("---")
-
 
         # ------------------------------------------
         # LOCAL AI PROCESSING
@@ -441,7 +527,6 @@ if uploaded_file is not None:
 
         progress.empty()
 
-
         # ------------------------------------------
         # GENERATE FINAL RESULT
         # ------------------------------------------
@@ -457,7 +542,6 @@ if uploaded_file is not None:
                     model_name
                 )
 
-
         elif revision_mode == "Key Points":
 
             with st.spinner(
@@ -468,7 +552,6 @@ if uploaded_file is not None:
                     chunk_summaries,
                     model_name
                 )
-
 
         else:
 
@@ -481,11 +564,9 @@ if uploaded_file is not None:
                     model_name
                 )
 
-
         generation_time = (
             time.time() - generation_start
         )
-
 
         # ------------------------------------------
         # GENERATION METRICS
@@ -505,7 +586,6 @@ if uploaded_file is not None:
         else:
 
             output_speed = 0
-
 
         st.markdown("---")
 
@@ -545,13 +625,11 @@ if uploaded_file is not None:
                 len(chunks)
             )
 
-
         # ------------------------------------------
         # DISPLAY RESULT
         # ------------------------------------------
 
         st.markdown("---")
-
 
         if revision_mode == "Summary":
 
@@ -572,7 +650,6 @@ if uploaded_file is not None:
                 mime="text/plain"
             )
 
-
         elif revision_mode == "Key Points":
 
             st.success(
@@ -591,7 +668,6 @@ if uploaded_file is not None:
                 file_name="key_points.txt",
                 mime="text/plain"
             )
-
 
         else:
 
