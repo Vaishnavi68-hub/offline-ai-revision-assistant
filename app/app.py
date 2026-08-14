@@ -131,6 +131,11 @@ with st.sidebar:
         "Running locally through Ollama."
     )
 
+    st.caption(
+        "Processing time depends on document size "
+        "and your local hardware."
+    )
+
     # ----------------------------------------------
     # SYSTEM STATUS
     # ----------------------------------------------
@@ -234,10 +239,6 @@ with st.sidebar:
                 )
             )
 
-            # --------------------------------------
-            # MODEL RECOMMENDATION
-            # --------------------------------------
-
             recommended_model = (
                 get_recommended_model(
                     averages
@@ -250,10 +251,6 @@ with st.sidebar:
                     f"🏆 Recommended model: "
                     f"{recommended_model}"
                 )
-
-            # --------------------------------------
-            # MODEL METRICS
-            # --------------------------------------
 
             for model, metrics in averages.items():
 
@@ -479,6 +476,34 @@ if uploaded_file is not None:
                     f"Created {len(chunks)} "
                     "text chunks."
                 )
+
+                # ----------------------------------
+                # PROCESSING TIME ESTIMATE
+                # ----------------------------------
+
+                estimated_seconds = (
+                    len(chunks) * 8
+                )
+
+                estimated_minutes = (
+                    estimated_seconds / 60
+                )
+
+                if estimated_minutes < 1:
+
+                    st.info(
+                        f"⏱️ Estimated AI processing "
+                        f"time: "
+                        f"{estimated_seconds:.0f} seconds"
+                    )
+
+                else:
+
+                    st.info(
+                        f"⏱️ Estimated AI processing "
+                        f"time: approximately "
+                        f"{estimated_minutes:.1f} minutes"
+                    )
 
                 status.update(
                     label="✅ PDF processed successfully",
