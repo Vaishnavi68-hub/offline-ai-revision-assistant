@@ -1,5 +1,6 @@
 import os
 import time
+
 import streamlit as st
 import ollama
 
@@ -23,13 +24,27 @@ from benchmark import (
     get_recommended_model
 )
 
+from cloud_llm import generate_cloud_response
+
+
+# ==================================================
+# CONFIGURATION
+# ==================================================
+
+CLOUD_MODEL = "meta-llama/Llama-3.2-3B-Instruct"
+
+LOCAL_MODELS = [
+    "llama3.2:3b",
+    "qwen2.5:3b"
+]
+
 
 # ==================================================
 # PAGE CONFIGURATION
 # ==================================================
 
 st.set_page_config(
-    page_title="AI Offline Revision Assistant",
+    page_title="AI Revision Assistant",
     page_icon="📚",
     layout="wide"
 )
@@ -78,7 +93,7 @@ st.markdown(
 
 st.markdown(
     '<div class="main-title">'
-    '📚 AI Offline Revision Assistant'
+    '📚 AI Revision Assistant'
     '</div>',
     unsafe_allow_html=True
 )
@@ -86,8 +101,8 @@ st.markdown(
 st.markdown(
     '<div class="subtitle">'
     'Transform your study PDFs into summaries, '
-    'key points, and flashcards using a '
-    'locally running AI model.'
+    'key points, and flashcards using local or '
+    'cloud AI.'
     '</div>',
     unsafe_allow_html=True
 )
@@ -113,28 +128,61 @@ with st.sidebar:
     st.divider()
 
     # ----------------------------------------------
-    # AI MODEL
+    # AI MODE
     # ----------------------------------------------
 
-    st.markdown("### 🤖 AI Model")
+    st.markdown("### 🤖 AI Mode")
 
-    model_name = st.selectbox(
-        "Choose local AI model:",
+    ai_mode = st.radio(
+        "Choose where AI should run:",
         [
-            "llama3.2:3b",
-            "qwen2.5:3b"
+            "Local AI",
+            "Cloud AI"
         ]
     )
 
-    st.info(
-        f"Selected model: {model_name}\n\n"
-        "Running locally through Ollama."
-    )
+    # ----------------------------------------------
+    # LOCAL AI
+    # ----------------------------------------------
 
-    st.caption(
-        "Processing time depends on document size "
-        "and your local hardware."
-    )
+    if ai_mode == "Local AI":
+
+        st.markdown("### 💻 Local AI Model")
+
+        model_name = st.selectbox(
+            "Choose local AI model:",
+            LOCAL_MODELS
+        )
+
+        st.info(
+            f"Selected model: {model_name}\n\n"
+            "Running locally through Ollama."
+        )
+
+        st.caption(
+            "Your PDF content is processed locally."
+        )
+
+    # ----------------------------------------------
+    # CLOUD AI
+    # ----------------------------------------------
+
+    else:
+
+        model_name = CLOUD_MODEL
+
+        st.markdown("### ☁️ Cloud AI Model")
+
+        st.info(
+            f"Selected model:\n"
+            f"{CLOUD_MODEL}\n\n"
+            "Running through Hugging Face Inference."
+        )
+
+        st.caption(
+            "Cloud mode requires a valid HF_TOKEN "
+            "environment variable."
+        )
 
     # ----------------------------------------------
     # SYSTEM STATUS
@@ -142,56 +190,85 @@ with st.sidebar:
 
     st.markdown("### 🟢 System Status")
 
-    try:
+    if ai_mode == "Local AI":
 
-        available_models = ollama.list()
+        try:
 
-        model_names = [
-            model["model"]
-            for model in available_models["models"]
-        ]
+            available_models = ollama.list()
 
-        model_available = (
-            model_name in model_names
-            or any(
-                name.startswith(model_name)
-                for name in model_names
+            model_names = [
+                model["model"]
+                for model in available_models["models"]
+            ]
+
+            model_available = (
+                model_name in model_names
+                or any(
+                    name.startswith(model_name)
+                    for name in model_names
+                )
             )
-        )
 
-        if model_available:
+            if model_available:
 
-            st.success("Ollama: Connected")
+                st.success(
+                    "Ollama: Connected"
+                )
+
+                st.success(
+                    f"Model available: {model_name}"
+                )
+
+            else:
+
+                st.warning(
+                    "Ollama: Connected"
+                )
+
+                st.warning(
+                    f"Model '{model_name}' "
+                    "is not installed."
+                )
+
+                st.caption(
+                    f"Run: ollama pull {model_name}"
+                )
+
+        except Exception:
+
+            st.error(
+                "Ollama: Not connected"
+            )
+
+            st.caption(
+                "Start Ollama before generating "
+                "local revision material."
+            )
+
+    else:
+
+        hf_token = os.getenv("HF_TOKEN")
+
+        if hf_token:
 
             st.success(
-                f"Model available: {model_name}"
+                "Hugging Face: Token detected"
+            )
+
+            st.success(
+                "Cloud AI: Ready"
             )
 
         else:
 
-            st.warning(
-                "Ollama: Connected"
-            )
-
-            st.warning(
-                f"Model '{model_name}' "
-                "is not installed."
+            st.error(
+                "Hugging Face: HF_TOKEN not found"
             )
 
             st.caption(
-                f"Run: ollama pull {model_name}"
+                "Set the HF_TOKEN environment "
+                "variable before using Cloud AI."
             )
-
-    except Exception:
-
-        st.error(
-            "Ollama: Not connected"
-        )
-
-        st.caption(
-            "Start Ollama before generating "
-            "revision material."
-        )
 
     # ----------------------------------------------
     # PRIVACY
@@ -201,10 +278,21 @@ with st.sidebar:
 
     st.markdown("### 🔒 Privacy")
 
-    st.success(
-        "Your study material stays on your "
-        "computer. No cloud AI API is required."
-    )
+    if ai_mode == "Local AI":
+
+        st.success(
+            "Local mode: your study material "
+            "is processed on your computer. "
+            "No cloud AI API is used."
+        )
+
+    else:
+
+        st.warning(
+            "Cloud mode: selected study content "
+            "is sent to the configured cloud AI "
+            "provider for generation."
+        )
 
     # ----------------------------------------------
     # NEW DOCUMENT
@@ -293,6 +381,244 @@ with st.sidebar:
 
 
 # ==================================================
+# CLOUD PROMPT FUNCTIONS
+# ==================================================
+
+def cloud_summarize_chunk(text):
+    """
+    Summarize one document chunk using
+    the configured cloud model.
+    """
+
+    prompt = f"""
+You are an AI study assistant.
+
+Summarize the following study material
+for a student preparing for an exam.
+
+Focus on:
+
+- important concepts
+- definitions
+- key points
+- formulas
+- examples
+
+Keep the explanation clear and concise.
+
+Do not introduce information that is not
+present in the study material.
+
+Study material:
+
+{text}
+"""
+
+    return generate_cloud_response(prompt)
+
+
+def cloud_create_final_summary(chunk_summaries):
+    """
+    Create the final study summary using cloud AI.
+    """
+
+    combined_summaries = "\n\n".join(
+        f"Section {i + 1}:\n{summary}"
+        for i, summary in enumerate(
+            chunk_summaries
+        )
+    )
+
+    prompt = f"""
+You are an AI revision assistant.
+
+Create a comprehensive final study summary
+from the section summaries below.
+
+Requirements:
+
+- Cover the most important concepts.
+- Keep important definitions.
+- Preserve important facts and relationships.
+- Organize information using clear headings
+  and bullet points.
+- Remove unnecessary repetition.
+- Do not introduce information that is not
+  present in the provided summaries.
+- Make the result useful for exam revision.
+
+Section summaries:
+
+{combined_summaries}
+"""
+
+    return generate_cloud_response(prompt)
+
+
+def cloud_generate_key_points(chunk_summaries):
+    """
+    Generate important revision points using cloud AI.
+    """
+
+    combined_summaries = "\n\n".join(
+        f"Section {i + 1}:\n{summary}"
+        for i, summary in enumerate(
+            chunk_summaries
+        )
+    )
+
+    prompt = f"""
+You are an AI revision assistant.
+
+Extract the most important points from the
+study material below.
+
+Create concise exam-oriented revision notes.
+
+Requirements:
+
+- Focus on important concepts.
+- Include important definitions.
+- Include formulas or rules if present.
+- Include important facts.
+- Remove unnecessary explanations.
+- Use bullet points.
+- Do not add information that is not present
+  in the material.
+
+Study material:
+
+{combined_summaries}
+"""
+
+    return generate_cloud_response(prompt)
+
+
+def cloud_generate_flashcards(chunk_summaries):
+    """
+    Generate question-answer flashcards
+    using cloud AI.
+    """
+
+    combined_summaries = "\n\n".join(
+        f"Section {i + 1}:\n{summary}"
+        for i, summary in enumerate(
+            chunk_summaries
+        )
+    )
+
+    prompt = f"""
+You are an AI revision assistant.
+
+Create useful study flashcards from the
+material below.
+
+Each flashcard must contain:
+
+- Question
+- Answer
+
+Requirements:
+
+- Focus on important concepts and definitions.
+- Include important facts, formulas, rules,
+  or relationships when present.
+- Questions should test understanding
+  and recall.
+- Answers must be concise and accurate.
+- Do not introduce information that is not
+  present in the material.
+- Create 10 to 15 flashcards if the material
+  contains enough information.
+
+Format the output exactly like this:
+
+Q1: [question]
+A1: [answer]
+
+Q2: [question]
+A2: [answer]
+
+Study material:
+
+{combined_summaries}
+"""
+
+    return generate_cloud_response(prompt)
+
+
+# ==================================================
+# UNIFIED AI GENERATION
+# ==================================================
+
+def generate_chunk_summary(text, ai_mode, model_name):
+    """
+    Route chunk summarization to Local or Cloud AI.
+    """
+
+    if ai_mode == "Local AI":
+
+        return summarize_chunk(
+            text,
+            model_name
+        )
+
+    return cloud_summarize_chunk(text)
+
+
+def generate_final_result(
+    chunk_summaries,
+    revision_mode,
+    ai_mode,
+    model_name
+):
+    """
+    Route final generation to Local or Cloud AI.
+    """
+
+    if ai_mode == "Local AI":
+
+        if revision_mode == "Summary":
+
+            return create_final_summary(
+                chunk_summaries,
+                model_name
+            )
+
+        if revision_mode == "Key Points":
+
+            return generate_key_points(
+                chunk_summaries,
+                model_name
+            )
+
+        return generate_flashcards(
+            chunk_summaries,
+            model_name
+        )
+
+    # ----------------------------------------------
+    # CLOUD
+    # ----------------------------------------------
+
+    if revision_mode == "Summary":
+
+        return cloud_create_final_summary(
+            chunk_summaries
+        )
+
+    if revision_mode == "Key Points":
+
+        return cloud_generate_key_points(
+            chunk_summaries
+        )
+
+    return cloud_generate_flashcards(
+        chunk_summaries
+    )
+
+
+# ==================================================
 # FILE UPLOAD
 # ==================================================
 
@@ -377,6 +703,72 @@ if uploaded_file is not None:
         type="primary",
         use_container_width=True
     ):
+
+        # ------------------------------------------
+        # VALIDATE AI CONFIGURATION
+        # ------------------------------------------
+
+        if ai_mode == "Local AI":
+
+            try:
+
+                available_models = ollama.list()
+
+                model_names = [
+                    model["model"]
+                    for model in available_models["models"]
+                ]
+
+                model_available = (
+                    model_name in model_names
+                    or any(
+                        name.startswith(model_name)
+                        for name in model_names
+                    )
+                )
+
+                if not model_available:
+
+                    st.error(
+                        f"Local model '{model_name}' "
+                        "is not installed."
+                    )
+
+                    st.info(
+                        f"Run:\n"
+                        f"ollama pull {model_name}"
+                    )
+
+                    st.stop()
+
+            except Exception as error:
+
+                st.error(
+                    "Ollama is not running."
+                )
+
+                st.info(
+                    "Start Ollama and try again."
+                )
+
+                st.stop()
+
+        else:
+
+            if not os.getenv("HF_TOKEN"):
+
+                st.error(
+                    "HF_TOKEN environment variable "
+                    "is not configured."
+                )
+
+                st.info(
+                    "Set your Hugging Face token "
+                    "as HF_TOKEN and restart "
+                    "the terminal/application."
+                )
+
+                st.stop()
 
         # ------------------------------------------
         # SAVE PDF
@@ -481,9 +873,17 @@ if uploaded_file is not None:
                 # PROCESSING TIME ESTIMATE
                 # ----------------------------------
 
-                estimated_seconds = (
-                    len(chunks) * 8
-                )
+                if ai_mode == "Local AI":
+
+                    estimated_seconds = (
+                        len(chunks) * 8
+                    )
+
+                else:
+
+                    estimated_seconds = (
+                        len(chunks) * 4
+                    )
 
                 estimated_minutes = (
                     estimated_seconds / 60
@@ -553,12 +953,20 @@ if uploaded_file is not None:
         st.markdown("---")
 
         # ------------------------------------------
-        # LOCAL AI PROCESSING
+        # AI PROCESSING
         # ------------------------------------------
 
-        st.subheader(
-            "🤖 Processing with Local AI"
-        )
+        if ai_mode == "Local AI":
+
+            st.subheader(
+                "🤖 Processing with Local AI"
+            )
+
+        else:
+
+            st.subheader(
+                "☁️ Processing with Cloud AI"
+            )
 
         chunk_summaries = []
 
@@ -581,8 +989,9 @@ if uploaded_file is not None:
                     )
                 )
 
-                summary = summarize_chunk(
+                summary = generate_chunk_summary(
                     chunk,
+                    ai_mode,
                     model_name
                 )
 
@@ -598,10 +1007,21 @@ if uploaded_file is not None:
                 f"❌ {error}"
             )
 
-            st.info(
-                "Make sure Ollama is running and "
-                f"that '{model_name}' is installed."
-            )
+            if ai_mode == "Local AI":
+
+                st.info(
+                    "Make sure Ollama is running "
+                    f"and that '{model_name}' "
+                    "is installed."
+                )
+
+            else:
+
+                st.info(
+                    "Check your HF_TOKEN and "
+                    "Hugging Face cloud inference "
+                    "configuration."
+                )
 
             st.stop()
 
@@ -629,8 +1049,10 @@ if uploaded_file is not None:
                     "Creating final study summary..."
                 ):
 
-                    result = create_final_summary(
+                    result = generate_final_result(
                         chunk_summaries,
+                        revision_mode,
+                        ai_mode,
                         model_name
                     )
 
@@ -640,8 +1062,10 @@ if uploaded_file is not None:
                     "Extracting key revision points..."
                 ):
 
-                    result = generate_key_points(
+                    result = generate_final_result(
                         chunk_summaries,
+                        revision_mode,
+                        ai_mode,
                         model_name
                     )
 
@@ -651,8 +1075,10 @@ if uploaded_file is not None:
                     "Creating flashcards..."
                 ):
 
-                    result = generate_flashcards(
+                    result = generate_final_result(
                         chunk_summaries,
+                        revision_mode,
+                        ai_mode,
                         model_name
                     )
 
@@ -742,7 +1168,8 @@ if uploaded_file is not None:
         if revision_mode == "Summary":
 
             st.success(
-                "Study summary generated!"
+                f"Study summary generated "
+                f"using {ai_mode}!"
             )
 
             st.markdown(
@@ -761,7 +1188,8 @@ if uploaded_file is not None:
         elif revision_mode == "Key Points":
 
             st.success(
-                "Key points generated!"
+                f"Key points generated "
+                f"using {ai_mode}!"
             )
 
             st.markdown(
@@ -780,7 +1208,8 @@ if uploaded_file is not None:
         else:
 
             st.success(
-                "Flashcards generated!"
+                f"Flashcards generated "
+                f"using {ai_mode}!"
             )
 
             st.markdown(
@@ -804,6 +1233,6 @@ if uploaded_file is not None:
 st.markdown("---")
 
 st.caption(
-    "🔒 Offline AI • Ollama • Local LLMs • "
-    "Your study material remains local"
+    "🔒 AI Revision Assistant • "
+    "Local Ollama + Hugging Face Cloud AI"
 )
