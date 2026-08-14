@@ -3,12 +3,16 @@ import os
 from huggingface_hub import InferenceClient
 
 
+MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"
+
+
 def generate_cloud_response(
     prompt,
-    model="Qwen/Qwen2.5-3B-Instruct"
+    model=MODEL_NAME
 ):
     """
-    Generate a response using a Hugging Face hosted model.
+    Generate a response using a Hugging Face
+    Inference Provider.
     """
 
     token = os.getenv("HF_TOKEN")
@@ -19,7 +23,7 @@ def generate_cloud_response(
         )
 
     client = InferenceClient(
-        provider="auto",
+        provider="featherless-ai",
         api_key=token
     )
 
