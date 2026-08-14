@@ -1,23 +1,23 @@
 import ollama
 
 
-DEFAULT_MODEL = "llama3.2:3b"
+MODEL_NAME = "qwen2.5:3b"
 
 
-def generate_response(
-    prompt,
-    model_name=DEFAULT_MODEL
-):
+def generate_response(prompt, model_name=None):
     """
-    Send a prompt to the selected local Ollama model.
+    Send a prompt to the local Ollama model.
 
     Parameters:
         prompt: Text instruction sent to the model.
-        model_name: Ollama model to use.
+        model_name: Optional Ollama model name.
 
     Returns:
         Model-generated response.
     """
+
+    if model_name is None:
+        model_name = MODEL_NAME
 
     try:
 
@@ -33,11 +33,10 @@ def generate_response(
 
         return response["message"]["content"]
 
-    except Exception as e:
+    except Exception as error:
 
         raise RuntimeError(
-            f"Unable to connect to Ollama or use model "
-            f"'{model_name}'. "
+            "Unable to connect to Ollama. "
             "Please make sure Ollama is running "
-            "and the selected model is installed."
-        ) from e
+            f"and that the model '{model_name}' is installed."
+        ) from error
