@@ -1,67 +1,58 @@
 # 📚 AI Offline Revision Assistant
 
-An offline AI-powered study assistant that converts study PDFs into:
-
-- 📖 Study summaries
-- 🎯 Key revision points
-- 🧠 Flashcards
-
-The application uses local Large Language Models through Ollama, so study material does not need to be sent to a cloud AI API.
+An offline AI-powered study assistant that converts study PDFs into concise summaries, key revision points, and flashcards using locally running Large Language Models through Ollama.
 
 ## ✨ Features
 
-- Upload study PDFs
-- Extract and clean PDF text
-- Split documents into chunks
-- Generate AI summaries
-- Generate exam-oriented key points
-- Generate flashcards
-- Choose between local AI models
-- View generation metrics
-- Download generated revision material
-- Reset and process a new document
-- Fully local AI inference
+- 📄 Upload study PDFs
+- 📖 Generate concise study summaries
+- 🎯 Extract important revision points
+- 🧠 Generate exam-oriented flashcards
+- 🤖 Support multiple local LLMs
+- ⚡ Benchmark model inference performance
+- 📊 Compare inference time, output speed, coverage, and relevance
+- 🏆 Automatically recommend the better-performing model
+- 🔒 No cloud AI API required
+- 💾 Download generated revision material
+- 📈 Display generation statistics
+- ⏱️ Estimate processing time for uploaded documents
 
 ## 🤖 Supported Models
 
-Currently tested:
+Currently benchmarked:
 
 - `llama3.2:3b`
 - `qwen2.5:3b`
 
-The models run locally using Ollama.
+The application uses Ollama to run the models locally.
 
-## 🛠️ Tech Stack
-
-- Python
-- Streamlit
-- Ollama
-- Llama 3.2 3B
-- Qwen 2.5 3B
-- PyMuPDF
-- Pandas
-- Git / GitHub
-
-## 📂 Project Structure
+## 🏗️ Project Architecture
 
 ```text
-AI-offline-revision-assistant/
+AI-offline revision-assistant/
 │
 ├── app/
 │   ├── app.py
+│   ├── benchmark.py
 │   ├── llm.py
 │   ├── pdf_processor.py
+│   ├── summarizer.py
 │   ├── text_processor.py
-│   └── summarizer.py
+│   │
+│   └── tests/
 │
 ├── evaluation/
+│   ├── benchmark_report.py
 │   ├── evaluation_dataset.py
 │   ├── evaluator.py
 │   ├── final_report.py
+│   ├── relevance.py
 │   └── run_evaluation.py
 │
-├── data/
 ├── results/
+│
+├── data/
+│
 ├── requirements.txt
 ├── .gitignore
 └── README.md
