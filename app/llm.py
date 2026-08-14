@@ -1,20 +1,61 @@
+import os
 import ollama
+
+from .cloud_llm import generate_cloud_response
 
 
 MODEL_NAME = "qwen2.5:3b"
 
 
-def generate_response(prompt, model_name=None):
+def get_ai_backend():
     """
-    Send a prompt to the local Ollama model.
+    Determine which AI backend to use.
 
-    Parameters:
-        prompt: Text instruction sent to the model.
-        model_name: Optional Ollama model name.
+    AI_BACKEND=cloud
+        Hugging Face cloud inference.
 
-    Returns:
-        Model-generated response.
+    AI_BACKEND=local
+        Local Ollama inference.
+
+    Defaults to local for development.
     """
+
+    return os.getenv(
+        "AI_BACKEND",
+        "local"
+    ).lower().strip()
+
+
+def generate_response(
+    prompt,
+    model_name=None
+):
+    """
+    Generate an AI response using either
+    Hugging Face Cloud or local Ollama.
+    """
+
+    backend = get_ai_backend()
+
+    # ==============================================
+    # HUGGING FACE CLOUD
+    # ==============================================
+
+    if backend == "cloud":
+
+        try:
+
+            return generate_cloud_response(prompt)
+
+        except Exception as error:
+
+            raise RuntimeError(
+                f"Cloud AI generation failed: {error}"
+            ) from error
+
+    # ==============================================
+    # LOCAL OLLAMA
+    # ==============================================
 
     if model_name is None:
         model_name = MODEL_NAME
