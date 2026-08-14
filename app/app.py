@@ -19,13 +19,14 @@ from summarizer import (
 
 from benchmark import (
     load_benchmark_results,
-    calculate_model_averages
+    calculate_model_averages,
+    get_recommended_model
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # PAGE CONFIGURATION
-# --------------------------------------------------
+# ==================================================
 
 st.set_page_config(
     page_title="AI Offline Revision Assistant",
@@ -34,9 +35,9 @@ st.set_page_config(
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # CUSTOM CSS
-# --------------------------------------------------
+# ==================================================
 
 st.markdown(
     """
@@ -71,9 +72,9 @@ st.markdown(
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # HEADER
-# --------------------------------------------------
+# ==================================================
 
 st.markdown(
     '<div class="main-title">'
@@ -92,9 +93,9 @@ st.markdown(
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # SIDEBAR
-# --------------------------------------------------
+# ==================================================
 
 with st.sidebar:
 
@@ -145,7 +146,6 @@ with st.sidebar:
             for model in available_models["models"]
         ]
 
-        # Handle possible Ollama model-name variants
         model_available = (
             model_name in model_names
             or any(
@@ -234,6 +234,27 @@ with st.sidebar:
                 )
             )
 
+            # --------------------------------------
+            # MODEL RECOMMENDATION
+            # --------------------------------------
+
+            recommended_model = (
+                get_recommended_model(
+                    averages
+                )
+            )
+
+            if recommended_model:
+
+                st.success(
+                    f"🏆 Recommended model: "
+                    f"{recommended_model}"
+                )
+
+            # --------------------------------------
+            # MODEL METRICS
+            # --------------------------------------
+
             for model, metrics in averages.items():
 
                 st.markdown(
@@ -265,6 +286,8 @@ with st.sidebar:
                     f"{metrics['relevance']:.2f}%"
                 )
 
+                st.divider()
+
         else:
 
             st.info(
@@ -272,9 +295,9 @@ with st.sidebar:
             )
 
 
-# --------------------------------------------------
+# ==================================================
 # FILE UPLOAD
-# --------------------------------------------------
+# ==================================================
 
 uploaded_file = st.file_uploader(
     "📄 Upload your study PDF",
@@ -286,9 +309,9 @@ uploaded_file = st.file_uploader(
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # LANDING PAGE
-# --------------------------------------------------
+# ==================================================
 
 if uploaded_file is None:
 
@@ -342,9 +365,9 @@ if uploaded_file is None:
         )
 
 
-# --------------------------------------------------
+# ==================================================
 # PDF PROCESSING
-# --------------------------------------------------
+# ==================================================
 
 if uploaded_file is not None:
 
@@ -389,25 +412,80 @@ if uploaded_file is not None:
             expanded=True
         ) as status:
 
-            raw_text = extract_text_from_pdf(
-                temp_pdf_path
-            )
+            try:
 
-            st.write(
-                f"Extracted "
-                f"{len(raw_text)} characters."
-            )
+                raw_text = extract_text_from_pdf(
+                    temp_pdf_path
+                )
 
-            cleaned_text = clean_text(
-                raw_text
-            )
+                st.write(
+                    f"Extracted "
+                    f"{len(raw_text)} characters."
+                )
 
-            st.write(
-                f"Cleaned text: "
-                f"{len(cleaned_text)} characters."
-            )
+                cleaned_text = clean_text(
+                    raw_text
+                )
 
-            if not cleaned_text.strip():
+                st.write(
+                    f"Cleaned text: "
+                    f"{len(cleaned_text)} characters."
+                )
+
+                if not cleaned_text.strip():
+
+                    status.update(
+                        label="❌ PDF processing failed",
+                        state="error"
+                    )
+
+                    st.error(
+                        "No readable text was found "
+                        "in this PDF. Please upload a "
+                        "text-based PDF."
+                    )
+
+                    st.stop()
+
+                # ----------------------------------
+                # CREATE CHUNKS
+                # ----------------------------------
+
+                st.write(
+                    "Creating document chunks..."
+                )
+
+                chunks = create_chunks(
+                    cleaned_text,
+                    chunk_size=100,
+                    overlap=20
+                )
+
+                if not chunks:
+
+                    status.update(
+                        label="❌ No chunks created",
+                        state="error"
+                    )
+
+                    st.error(
+                        "The document could not be "
+                        "divided into text chunks."
+                    )
+
+                    st.stop()
+
+                st.write(
+                    f"Created {len(chunks)} "
+                    "text chunks."
+                )
+
+                status.update(
+                    label="✅ PDF processed successfully",
+                    state="complete"
+                )
+
+            except Exception as error:
 
                 status.update(
                     label="❌ PDF processing failed",
@@ -415,50 +493,10 @@ if uploaded_file is not None:
                 )
 
                 st.error(
-                    "No readable text was found "
-                    "in this PDF. Please upload a "
-                    "text-based PDF."
+                    f"Unable to process PDF: {error}"
                 )
 
                 st.stop()
-
-            # --------------------------------------
-            # CREATE CHUNKS
-            # --------------------------------------
-
-            st.write(
-                "Creating document chunks..."
-            )
-
-            chunks = create_chunks(
-                cleaned_text,
-                chunk_size=100,
-                overlap=20
-            )
-
-            if not chunks:
-
-                status.update(
-                    label="❌ No chunks created",
-                    state="error"
-                )
-
-                st.error(
-                    "The document could not be divided "
-                    "into text chunks."
-                )
-
-                st.stop()
-
-            st.write(
-                f"Created {len(chunks)} "
-                "text chunks."
-            )
-
-            status.update(
-                label="✅ PDF processed successfully",
-                state="complete"
-            )
 
         # ------------------------------------------
         # DOCUMENT INFORMATION
@@ -506,24 +544,51 @@ if uploaded_file is not None:
 
         generation_start = time.time()
 
-        for i, chunk in enumerate(chunks):
+        try:
 
-            progress.progress(
-                (i + 1) / len(chunks),
-                text=(
-                    f"Processing section "
-                    f"{i + 1} of {len(chunks)}..."
+            for i, chunk in enumerate(chunks):
+
+                progress.progress(
+                    (i + 1) / len(chunks),
+                    text=(
+                        f"Processing section "
+                        f"{i + 1} of {len(chunks)}..."
+                    )
                 )
+
+                summary = summarize_chunk(
+                    chunk,
+                    model_name
+                )
+
+                chunk_summaries.append(
+                    summary
+                )
+
+        except RuntimeError as error:
+
+            progress.empty()
+
+            st.error(
+                f"❌ {error}"
             )
 
-            summary = summarize_chunk(
-                chunk,
-                model_name
+            st.info(
+                "Make sure Ollama is running and "
+                f"that '{model_name}' is installed."
             )
 
-            chunk_summaries.append(
-                summary
+            st.stop()
+
+        except Exception as error:
+
+            progress.empty()
+
+            st.error(
+                f"❌ AI generation failed: {error}"
             )
+
+            st.stop()
 
         progress.empty()
 
@@ -531,38 +596,56 @@ if uploaded_file is not None:
         # GENERATE FINAL RESULT
         # ------------------------------------------
 
-        if revision_mode == "Summary":
+        try:
 
-            with st.spinner(
-                "Creating final study summary..."
-            ):
+            if revision_mode == "Summary":
 
-                result = create_final_summary(
-                    chunk_summaries,
-                    model_name
-                )
+                with st.spinner(
+                    "Creating final study summary..."
+                ):
 
-        elif revision_mode == "Key Points":
+                    result = create_final_summary(
+                        chunk_summaries,
+                        model_name
+                    )
 
-            with st.spinner(
-                "Extracting key revision points..."
-            ):
+            elif revision_mode == "Key Points":
 
-                result = generate_key_points(
-                    chunk_summaries,
-                    model_name
-                )
+                with st.spinner(
+                    "Extracting key revision points..."
+                ):
 
-        else:
+                    result = generate_key_points(
+                        chunk_summaries,
+                        model_name
+                    )
 
-            with st.spinner(
-                "Creating flashcards..."
-            ):
+            else:
 
-                result = generate_flashcards(
-                    chunk_summaries,
-                    model_name
-                )
+                with st.spinner(
+                    "Creating flashcards..."
+                ):
+
+                    result = generate_flashcards(
+                        chunk_summaries,
+                        model_name
+                    )
+
+        except RuntimeError as error:
+
+            st.error(
+                f"❌ {error}"
+            )
+
+            st.stop()
+
+        except Exception as error:
+
+            st.error(
+                f"❌ Final generation failed: {error}"
+            )
+
+            st.stop()
 
         generation_time = (
             time.time() - generation_start
@@ -689,9 +772,9 @@ if uploaded_file is not None:
             )
 
 
-# --------------------------------------------------
+# ==================================================
 # FOOTER
-# --------------------------------------------------
+# ==================================================
 
 st.markdown("---")
 
