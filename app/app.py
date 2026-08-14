@@ -457,8 +457,8 @@ if uploaded_file is not None:
 
                 chunks = create_chunks(
                     cleaned_text,
-                    chunk_size=100,
-                    overlap=20
+                    chunk_size=500,
+                    overlap=50
                 )
 
                 if not chunks:
