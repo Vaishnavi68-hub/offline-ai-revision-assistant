@@ -1,15 +1,13 @@
 from llm import generate_response
 
 
-DEFAULT_MODEL = "llama3.2:3b"
-
-
 def summarize_chunk(
     text,
-    model_name=DEFAULT_MODEL
+    model_name="qwen2.5:3b"
 ):
     """
-    Generate a summary for one document chunk.
+    Summarize one document chunk using the
+    selected local Ollama model.
     """
 
     prompt = f"""
@@ -28,8 +26,8 @@ Focus on:
 
 Keep the explanation clear and concise.
 
-Do not introduce information that is
-not present in the study material.
+Do not introduce information that is not
+present in the study material.
 
 Study material:
 
@@ -44,11 +42,11 @@ Study material:
 
 def create_final_summary(
     chunk_summaries,
-    model_name=DEFAULT_MODEL
+    model_name="qwen2.5:3b"
 ):
     """
-    Combine individual chunk summaries
-    into one final study summary.
+    Combine individual chunk summaries into
+    one final study summary.
     """
 
     combined_summaries = "\n\n".join(
@@ -69,7 +67,7 @@ Requirements:
 - Cover the most important concepts.
 - Keep important definitions.
 - Preserve important facts and relationships.
-- Organize the information using clear headings
+- Organize information using clear headings
   and bullet points.
 - Remove unnecessary repetition.
 - Do not introduce information that is not
@@ -89,11 +87,10 @@ Section summaries:
 
 def generate_key_points(
     chunk_summaries,
-    model_name=DEFAULT_MODEL
+    model_name="qwen2.5:3b"
 ):
     """
-    Generate important revision points
-    from chunk summaries.
+    Generate important revision points.
     """
 
     combined_summaries = "\n\n".join(
@@ -106,8 +103,8 @@ def generate_key_points(
     prompt = f"""
 You are an AI revision assistant.
 
-Extract the most important points from
-the study material below.
+Extract the most important points from the
+study material below.
 
 Create concise exam-oriented revision notes.
 
@@ -119,8 +116,8 @@ Requirements:
 - Include important facts.
 - Remove unnecessary explanations.
 - Use bullet points.
-- Do not add information that is not
-  present in the material.
+- Do not add information that is not present
+  in the material.
 
 Study material:
 
@@ -135,11 +132,10 @@ Study material:
 
 def generate_flashcards(
     chunk_summaries,
-    model_name=DEFAULT_MODEL
+    model_name="qwen2.5:3b"
 ):
     """
-    Generate question-answer flashcards
-    from document summaries.
+    Generate question-answer flashcards.
     """
 
     combined_summaries = "\n\n".join(
@@ -152,8 +148,8 @@ def generate_flashcards(
     prompt = f"""
 You are an AI revision assistant.
 
-Create useful study flashcards from
-the material below.
+Create useful study flashcards from the
+material below.
 
 Each flashcard must contain:
 
@@ -165,7 +161,8 @@ Requirements:
 - Focus on important concepts and definitions.
 - Include important facts, formulas, rules,
   or relationships when present.
-- Questions should test understanding and recall.
+- Questions should test understanding
+  and recall.
 - Answers must be concise and accurate.
 - Do not introduce information that is not
   present in the material.
